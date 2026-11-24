@@ -3,7 +3,7 @@
 <div align="center">
 
 [![Microsoft Hackathon](https://img.shields.io/badge/Microsoft%20Hackathon-Micro--Insurance%20Track-0078D4?style=for-the-badge&logo=microsoft)](https://github.com/SiyaChaudhary1107/claimready)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-2ea44f?style=for-the-badge&logo=github)]([https://siyachaudhary1107.github.io/claimready/](https://claim-ready-teal.vercel.app/))
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Visit%20Website-2ea44f?style=for-the-badge&logo=github)](https://claim-ready-teal.vercel.app/)
 [![React 18](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
@@ -13,7 +13,7 @@
 
 *A multilingual health-insurance claim preparation platform designed for gig workers, rural families, low-income households, and first-time policyholders.*
 
-### 🌐 [Click Here to View the Live Application](https://siyachaudhary1107.github.io/claimready/)
+### 🌐 [Click Here to View the Live Application](https://claim-ready-teal.vercel.app/)
 
 </div>
 
@@ -305,7 +305,7 @@ Potential future improvements include:
 
 <div align="center">
 
-### 🌐 [OPEN CLAIMREADY — LIVE APPLICATION](https://siyachaudhary1107.github.io/claimready/)
+### 🌐 [OPEN CLAIMREADY — LIVE APPLICATION](https://claim-ready-teal.vercel.app/)
 
 [![GitHub Repository](https://img.shields.io/badge/GitHub-View%20Source%20Code-181717?style=for-the-badge&logo=github)](https://github.com/SiyaChaudhary1107/claimready)
 
@@ -323,7 +323,7 @@ Potential future improvements include:
 | **Platform** | Web Application |
 | **Frontend** | React + TypeScript |
 | **Repository** | [GitHub](https://github.com/SiyaChaudhary1107/claimready) |
-| **Live Application** | [CLAIMREADY]([https://siyachaudhary1107.github.io/claimready/](https://claim-ready-teal.vercel.app/)) |
+| **Live Application** | [CLAIMREADY](https://claim-ready-teal.vercel.app/) |
 
 ---
 
