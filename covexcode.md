@@ -14,7 +14,7 @@ An explainable, AI-assisted health insurance claim readiness evaluation platform
 | :--- | :--- | :--- |
 | `COVEXCODE_ENDPOINT` | `https://llm.covexcode.com/event/v1` | LLM event endpoint |
 | `COVEXCODE_MODEL` | `deepseek-v4-flash` | Ultra-fast completion & reasoning model |
-| `COVEXCODE_API_KEY` | `bx-live-42f1e2e4146426cffc6e6642d7df34df` | Authentication Bearer token |
+| `COVEXCODE_API_KEY` | `api_key` | Authentication Bearer token |
 
 ---
 
@@ -107,7 +107,7 @@ Verify that `.env` exists in `ClaimReady/`:
 ```env
 COVEXCODE_ENDPOINT=https://llm.covexcode.com/event/v1
 COVEXCODE_MODEL=deepseek-v4-flash
-COVEXCODE_API_KEY=bx-live-42f1e2e4146426cffc6e6642d7df34df
+COVEXCODE_API_KEY=api_key
 ```
 
 *(Note: `.env` is automatically ignored in `.gitignore` to prevent secret leakage).*
