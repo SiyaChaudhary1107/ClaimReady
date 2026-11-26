@@ -1,4 +1,5 @@
 import { PolicyData, MedicalDocument, IntelligenceFinding, ClaimReadinessSummary, EngineStatus } from '../types';
+import { summarizePolicyCondition, explainUnclearEntry, AIExplanationResult } from './covexcodeService';
 
 /**
  * The Evidence-to-Policy Intelligence Engine
@@ -496,4 +497,46 @@ export function runIntelligenceEngine(
       'Submit complete claim dossier to your TPA or insurer within 30 days of discharge.'
     ],
   };
+}
+
+
+/**
+ * Enhances an individual Intelligence Finding using Covexcode (deepseek-v4-flash).
+ * Summarizes the policy condition and, for unclear/conflicting entries, generates
+ * structured root-cause explanations and actionable remedy steps.
+ */
+export async function enhanceFindingWithAI(
+  finding: IntelligenceFinding
+): Promise<IntelligenceFinding> {
+  const needsExplanation =
+    finding.status === 'UNCLEAR' ||
+    finding.status === 'CONFLICT' ||
+    finding.status === 'NOT_FOUND';
+
+  const [summaryResult, explainResult] = await Promise.all([
+    summarizePolicyCondition(finding.policyCondition, finding.category),
+    needsExplanation
+      ? explainUnclearEntry(finding, finding.pageOrExcerpt)
+      : Promise.resolve<AIExplanationResult | null>(null),
+  ]);
+
+  return {
+    ...finding,
+    aiConditionSummary: summaryResult.text,
+    aiExplanation: explainResult ? explainResult.text : undefined,
+    aiSource:
+      summaryResult.source === 'covexcode-deepseek' ||
+      explainResult?.source === 'covexcode-deepseek'
+        ? 'covexcode-deepseek'
+        : 'offline-fallback',
+  };
+}
+
+/**
+ * Batch-enhances all findings with Covexcode intelligence
+ */
+export async function enrichFindingsWithCovexcode(
+  findings: IntelligenceFinding[]
+): Promise<IntelligenceFinding[]> {
+  return Promise.all(findings.map((f) => enhanceFindingWithAI(f)));
 }

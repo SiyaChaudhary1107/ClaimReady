@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sparkles,
   CheckCircle2,
@@ -13,11 +13,14 @@ import {
   ShieldCheck,
   Building2,
   Calendar,
-  Layers
+  Layers,
+  Loader2,
+  Bot
 } from 'lucide-react';
 import { Language, ClaimReadinessSummary, IntelligenceFinding, EngineStatus } from '../../types';
 import { getTranslation } from '../../translations';
 import { SourceViewerModal } from '../SourceViewerModal';
+import { enhanceFindingWithAI, enrichFindingsWithCovexcode } from '../../services/intelligenceEngine';
 
 interface EngineAnalysisViewProps {
   currentLang: Language;
@@ -36,11 +39,46 @@ export const EngineAnalysisView: React.FC<EngineAnalysisViewProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<'ALL' | EngineStatus>('ALL');
   const [activeFindingForModal, setActiveFindingForModal] = useState<IntelligenceFinding | null>(null);
 
-  const findings = summary.findings;
+  // Local state for findings to enable dynamic Covexcode enrichment
+  const [findingsList, setFindingsList] = useState<IntelligenceFinding[]>(summary.findings);
+  const [loadingFindingIds, setLoadingFindingIds] = useState<Record<string, boolean>>({});
+  const [isBatchAnalyzing, setIsBatchAnalyzing] = useState<boolean>(false);
+
+  useEffect(() => {
+    setFindingsList(summary.findings);
+  }, [summary.findings]);
 
   const filteredFindings = selectedFilter === 'ALL'
-    ? findings
-    : findings.filter((f) => f.status === selectedFilter);
+    ? findingsList
+    : findingsList.filter((f) => f.status === selectedFilter);
+
+  // Handle single finding AI clarification
+  const handleClarifyFinding = async (finding: IntelligenceFinding) => {
+    setLoadingFindingIds((prev) => ({ ...prev, [finding.id]: true }));
+    try {
+      const enriched = await enhanceFindingWithAI(finding);
+      setFindingsList((prev) =>
+        prev.map((f) => (f.id === finding.id ? enriched : f))
+      );
+    } catch (err) {
+      console.error('Failed to enhance finding with AI:', err);
+    } finally {
+      setLoadingFindingIds((prev) => ({ ...prev, [finding.id]: false }));
+    }
+  };
+
+  // Handle batch enrichment of all findings with Covexcode
+  const handleBatchAnalyze = async () => {
+    setIsBatchAnalyzing(true);
+    try {
+      const enriched = await enrichFindingsWithCovexcode(findingsList);
+      setFindingsList(enriched);
+    } catch (err) {
+      console.error('Failed to batch enhance findings with AI:', err);
+    } finally {
+      setIsBatchAnalyzing(false);
+    }
+  };
 
   const getStatusBadge = (status: EngineStatus) => {
     switch (status) {
@@ -94,23 +132,48 @@ export const EngineAnalysisView: React.FC<EngineAnalysisViewProps> = ({
             </p>
           </div>
 
-          <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 text-center shrink-0 min-w-[140px]">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-              Paperwork Score
-            </span>
-            <span className="text-3xl font-extrabold text-white block my-0.5">
-              {summary.readinessScore}%
-            </span>
-            <span className="text-[10px] font-semibold text-blue-300 uppercase">
-              {summary.overallReadiness.replace(/_/g, ' ')}
-            </span>
+          <div className="flex items-center gap-4 shrink-0">
+            <button
+              onClick={handleBatchAnalyze}
+              disabled={isBatchAnalyzing}
+              className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg transition border border-blue-400/30 disabled:opacity-50"
+            >
+              {isBatchAnalyzing ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Analyzing with DeepSeek...</span>
+                </>
+              ) : (
+                <>
+                  <Bot className="w-4 h-4 text-blue-200" />
+                  <span>Covexcode DeepSeek Pass</span>
+                </>
+              )}
+            </button>
+
+            <div className="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 text-center shrink-0 min-w-[130px]">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                Paperwork Score
+              </span>
+              <span className="text-3xl font-extrabold text-white block my-0.5">
+                {summary.readinessScore}%
+              </span>
+              <span className="text-[10px] font-semibold text-blue-300 uppercase">
+                {summary.overallReadiness.replace(/_/g, ' ')}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Explainability Banner */}
-        <div className="mt-6 pt-4 border-t border-slate-700/80 flex items-center space-x-2 text-xs text-blue-200">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>{t.engineStep.explainableGuarantee}</span>
+        <div className="mt-6 pt-4 border-t border-slate-700/80 flex items-center justify-between flex-wrap gap-2 text-xs text-blue-200">
+          <div className="flex items-center space-x-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{t.engineStep.explainableGuarantee}</span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-mono">
+            Powered by Covexcode Event Engine (deepseek-v4-flash)
+          </span>
         </div>
       </div>
 
@@ -124,7 +187,7 @@ export const EngineAnalysisView: React.FC<EngineAnalysisViewProps> = ({
               : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
           }`}
         >
-          {t.engineStep.filterAll} ({findings.length})
+          {t.engineStep.filterAll} ({findingsList.length})
         </button>
 
         <button
@@ -178,90 +241,142 @@ export const EngineAnalysisView: React.FC<EngineAnalysisViewProps> = ({
 
       {/* Findings Cards List */}
       <div className="space-y-4">
-        {filteredFindings.map((finding) => (
-          <div
-            key={finding.id}
-            className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition space-y-4"
-          >
-            {/* Top Row: Category, Title & Status */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100">
-              <div className="space-y-1">
-                <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <span>Category: {finding.category}</span>
-                  {finding.differenceAmount && (
-                    <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-mono font-bold">
-                      Diff: ₹{finding.differenceAmount.toLocaleString('en-IN')}
-                    </span>
+        {filteredFindings.map((finding) => {
+          const isLoading = loadingFindingIds[finding.id] || false;
+
+          return (
+            <div
+              key={finding.id}
+              className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition space-y-4"
+            >
+              {/* Top Row: Category, Title, AI Action & Status */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 pb-3 border-b border-slate-100">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    <span>Category: {finding.category}</span>
+                    {finding.differenceAmount && (
+                      <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-mono font-bold">
+                        Diff: ₹{finding.differenceAmount.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900">
+                    {finding.requirement}
+                  </h3>
+                  <div className="text-xs text-slate-600">
+                    <strong className="text-slate-800">Policy Condition:</strong> {finding.policyCondition}
+                  </div>
+
+                  {/* Covexcode Policy Condition Plain Summary */}
+                  {finding.aiConditionSummary && (
+                    <div className="mt-2 text-xs bg-indigo-50/70 border border-indigo-200/80 text-indigo-950 rounded-xl p-3 space-y-1">
+                      <div className="flex items-center space-x-1.5 font-bold text-[10px] text-indigo-700 uppercase tracking-wider">
+                        <Sparkles className="w-3 h-3 text-indigo-600" />
+                        <span>Clause Plain Summary</span>
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-100 text-indigo-800 font-mono font-normal">
+                          {finding.aiSource === 'covexcode-deepseek' ? 'deepseek-v4-flash' : 'offline rules'}
+                        </span>
+                      </div>
+                      <p className="leading-relaxed">{finding.aiConditionSummary}</p>
+                    </div>
                   )}
                 </div>
-                <h3 className="text-sm sm:text-base font-bold text-slate-900">
-                  {finding.requirement}
-                </h3>
-                <p className="text-xs text-slate-500">
-                  <strong>Policy Condition:</strong> {finding.policyCondition}
-                </p>
-              </div>
 
-              <div className="shrink-0">
-                {getStatusBadge(finding.status)}
-              </div>
-            </div>
-
-            {/* Middle Row: Supporting Evidence & Document Excerpt */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
-              {/* Supporting Evidence */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
-                <div className="flex items-center justify-between text-slate-500">
-                  <span className="font-semibold text-slate-700">Supporting Evidence</span>
-                  <span className="font-mono text-[11px] text-blue-700 font-semibold truncate max-w-[200px]">
-                    {finding.documentName}
-                  </span>
-                </div>
-                <p className="text-slate-800 leading-relaxed font-normal">
-                  {finding.supportingEvidence}
-                </p>
-              </div>
-
-              {/* Exact Text Excerpt */}
-              <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200 space-y-1.5">
-                <div className="flex items-center justify-between text-blue-800">
-                  <span className="font-semibold">Extracted Source Excerpt</span>
+                <div className="flex items-center space-x-2 shrink-0">
                   <button
-                    onClick={() => setActiveFindingForModal(finding)}
-                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                    onClick={() => handleClarifyFinding(finding)}
+                    disabled={isLoading}
+                    title="Run Covexcode DeepSeek AI on this clause"
+                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition disabled:opacity-50"
                   >
-                    <Eye className="w-3 h-3" />
-                    <span>{t.engineStep.viewSourceBtn}</span>
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
+                        <span>Consulting DeepSeek...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                        <span>AI Clarify</span>
+                      </>
+                    )}
                   </button>
+                  {getStatusBadge(finding.status)}
                 </div>
-                <p className="font-mono text-[11px] text-blue-950 italic line-clamp-2">
-                  "{finding.pageOrExcerpt}"
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom Row: Explanation & Recommended Action */}
-            <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px] block mb-1">
-                  Engine Explanation:
-                </span>
-                <p className="text-slate-600 leading-relaxed">
-                  {finding.explanation}
-                </p>
               </div>
 
-              <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
-                <span className="font-bold text-emerald-900 uppercase tracking-wider text-[10px] block mb-1">
-                  Recommended Next Action:
-                </span>
-                <p className="text-emerald-950 font-medium leading-relaxed">
-                  👉 {finding.recommendedAction}
-                </p>
+              {/* Middle Row: Supporting Evidence & Document Excerpt */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-xs">
+                {/* Supporting Evidence */}
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="flex items-center justify-between text-slate-500">
+                    <span className="font-semibold text-slate-700">Supporting Evidence</span>
+                    <span className="font-mono text-[11px] text-blue-700 font-semibold truncate max-w-[200px]">
+                      {finding.documentName}
+                    </span>
+                  </div>
+                  <p className="text-slate-800 leading-relaxed font-normal">
+                    {finding.supportingEvidence}
+                  </p>
+                </div>
+
+                {/* Exact Text Excerpt */}
+                <div className="p-3.5 rounded-xl bg-blue-50/50 border border-blue-200 space-y-1.5">
+                  <div className="flex items-center justify-between text-blue-800">
+                    <span className="font-semibold">Extracted Source Excerpt</span>
+                    <button
+                      onClick={() => setActiveFindingForModal(finding)}
+                      className="text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>{t.engineStep.viewSourceBtn}</span>
+                    </button>
+                  </div>
+                  <p className="font-mono text-[11px] text-blue-950 italic line-clamp-2">
+                    "{finding.pageOrExcerpt}"
+                  </p>
+                </div>
+              </div>
+
+              {/* AI Discrepancy & Gap Diagnostics (if generated) */}
+              {finding.aiExplanation && (
+                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/90 text-amber-950 space-y-1 text-xs">
+                  <div className="flex items-center space-x-1.5 font-bold text-[10px] text-amber-800 uppercase tracking-wider">
+                    <Bot className="w-3.5 h-3.5 text-amber-600" />
+                    <span>DeepSeek Discrepancy Diagnostic & Remediation</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-mono font-normal">
+                      {finding.aiSource === 'covexcode-deepseek' ? 'deepseek-v4-flash' : 'offline rules'}
+                    </span>
+                  </div>
+                  <div className="text-slate-800 whitespace-pre-line leading-relaxed font-normal pt-1">
+                    {finding.aiExplanation}
+                  </div>
+                </div>
+              )}
+
+              {/* Bottom Row: Explanation & Recommended Action */}
+              <div className="pt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="p-3 rounded-xl bg-slate-50/80 border border-slate-100">
+                  <span className="font-bold text-slate-800 uppercase tracking-wider text-[10px] block mb-1">
+                    Engine Explanation:
+                  </span>
+                  <p className="text-slate-600 leading-relaxed">
+                    {finding.explanation}
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                  <span className="font-bold text-emerald-900 uppercase tracking-wider text-[10px] block mb-1">
+                    Recommended Next Action:
+                  </span>
+                  <p className="text-emerald-950 font-medium leading-relaxed">
+                    👉 {finding.recommendedAction}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Navigation Footer */}

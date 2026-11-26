@@ -142,6 +142,23 @@ flowchart TD
 | **Tesseract.js** | Optical Character Recognition (OCR) |
 | **JavaScript / TypeScript** | Application logic and verification rules |
 | **jsPDF** | Generating downloadable PDF reports |
+| **Covexcode API** | LLM event endpoint (`deepseek-v4-flash`) for plain-English policy condition translation & root-cause gap diagnostics |
+
+---
+
+## 🤖 5.1 Covexcode AI Integration (`deepseek-v4-flash`)
+
+### What is Covexcode?
+**Covexcode** is an AI inference gateway (`https://llm.covexcode.com/event/v1`) that runs **`deepseek-v4-flash`** for high-speed prompt completions and analytical reasoning.
+
+### Why We Used It
+1. **Plain-English Policy Summarization**: Medical insurance clauses (e.g., room-rent limits, proportionate deductions, and disease-specific waiting periods) are dense and legalistic. Covexcode translates these into 1–2 simple sentences explaining their practical financial impact for everyday claimants.
+2. **Actionable Discrepancy Diagnostics**: When records are marked **`UNCLEAR`** or **`CONFLICT`** (such as date mismatches or missing prescriptions), Covexcode explains the exact ambiguity and tells the claimant what specific certificate, hospital endorsement, or document to collect.
+3. **Low-Latency & Reliability**: DeepSeek v4 Flash responds in sub-seconds. If the API is unreachable or rate-limited, ClaimReady automatically falls back to deterministic offline rules, guaranteeing 100% platform availability.
+
+### How to Use It in the App
+- In **Step 4: Engine Analysis**, click the **"AI Clarify"** button on any finding to consult DeepSeek on that specific clause.
+- Click **"Covexcode DeepSeek Pass"** in the top banner to batch-analyze all findings across the claim dossier.
 
 ---
 
