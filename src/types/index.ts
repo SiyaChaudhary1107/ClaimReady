@@ -113,6 +113,9 @@ export interface IntelligenceFinding {
   recommendedAction: string;
   differenceAmount?: number;
   severity: 'success' | 'info' | 'warning' | 'danger';
+  aiExplanation?: string;
+  aiConditionSummary?: string;
+  aiSource?: 'covexcode-deepseek' | 'offline-fallback';
 }
 
 export interface ClaimReadinessSummary {
